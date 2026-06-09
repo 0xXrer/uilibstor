@@ -12,7 +12,12 @@ import {
 } from "@/components/library-preview"
 import { Markdown } from "@/components/markdown"
 import { DiscordIcon, SiteHeader } from "@/components/site-header"
-import { submitLibrary } from "@/lib/actions/libraries"
+import {
+  attachLibraryScreenshots,
+  cancelLibrarySubmission,
+  createLibrarySubmission,
+} from "@/lib/actions/libraries"
+import { createClient } from "@/lib/supabase/client"
 
 type Shot = { id: string; file: File; url: string; name: string }
 
@@ -131,16 +136,74 @@ export default function UploadPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+
+    if (shots.length === 0) {
+      setError("Upload at least one screenshot.")
+      return
+    }
+
+    if (!user) {
+      setError("Sign in with Discord to publish.")
+      return
+    }
+
     setSubmitting(true)
 
-    const form = e.currentTarget
-    const fd = new FormData(form)
-    shots.forEach((s) => fd.append("screenshots", s.file))
+    const result = await createLibrarySubmission({
+      name,
+      author,
+      platform,
+      kind,
+      accent,
+      source,
+      description,
+    })
 
-    const result = await submitLibrary(fd)
-
-    if (result.error) {
+    if (!result.ok) {
       setError(result.error)
+      setSubmitting(false)
+      return
+    }
+
+    const { libraryId } = result
+    const supabase = createClient()
+    if (!supabase) {
+      await cancelLibrarySubmission(libraryId)
+      setError("Supabase is not configured.")
+      setSubmitting(false)
+      return
+    }
+
+    const uploaded: string[] = []
+
+    try {
+      for (let i = 0; i < shots.length; i++) {
+        const file = shots[i]!.file
+        const ext = file.name.split(".").pop() ?? "jpg"
+        const path = `${user.id}/${libraryId}/${i}.${ext}`
+
+        const { error: uploadError } = await supabase.storage
+          .from("screenshots")
+          .upload(path, file, { upsert: true, contentType: file.type })
+
+        if (uploadError) {
+          throw new Error(uploadError.message)
+        }
+
+        const { data: pub } = supabase.storage.from("screenshots").getPublicUrl(path)
+        uploaded.push(pub.publicUrl)
+      }
+    } catch (err) {
+      await cancelLibrarySubmission(libraryId)
+      setError(err instanceof Error ? `Upload failed: ${err.message}` : "Upload failed.")
+      setSubmitting(false)
+      return
+    }
+
+    const attached = await attachLibraryScreenshots(libraryId, uploaded)
+    if (!attached.ok) {
+      await cancelLibrarySubmission(libraryId)
+      setError(attached.error)
       setSubmitting(false)
       return
     }
@@ -167,7 +230,11 @@ export default function UploadPage() {
     <div className="min-h-svh">
       <SiteHeader />
       <main className="mx-auto max-w-5xl px-6 py-12 sm:px-10">
-        {loading ? null : !user ? (
+        {loading ? (
+          <div className="flex min-h-[50vh] items-center justify-center">
+            <span className="animate-pulse font-mono text-[13px] text-muted-foreground">Loading session…</span>
+          </div>
+        ) : !user ? (
           <SignInGate />
         ) : submitted ? (
           <SubmittedScreen name={name} onReset={reset} />

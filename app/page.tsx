@@ -1,10 +1,11 @@
 import Link from "next/link"
 
 import { Gallery } from "@/components/gallery"
-
-export const dynamic = "force-dynamic"
+import { HeroBackground } from "@/components/hero-background"
 import { SiteHeader } from "@/components/site-header"
 import { getApprovedLibraries, getGalleryStats } from "@/lib/libraries"
+
+export const dynamic = "force-dynamic"
 
 export default async function Page() {
   const [libraries, stats] = await Promise.all([
@@ -17,26 +18,7 @@ export default async function Page() {
       <SiteHeader />
 
       <section className="relative isolate flex min-h-[80svh] flex-col items-center justify-center overflow-hidden border-b border-border bg-[#070708]">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          poster="/hero/telescope-poster.jpg"
-          className="absolute inset-0 -z-20 hidden size-full object-cover sm:block"
-        >
-          <source src="/hero/telescope.webm" type="video/webm" />
-          <source src="/hero/telescope.mp4" type="video/mp4" />
-        </video>
-
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/hero/telescope-mobile.webp"
-          alt=""
-          aria-hidden
-          className="absolute inset-0 -z-20 size-full object-cover sm:hidden"
-        />
-
+        <HeroBackground />
         <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-[#070708]/55 via-[#070708]/25 to-[#070708]" />
 
         <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-6 py-24 text-center sm:px-10">

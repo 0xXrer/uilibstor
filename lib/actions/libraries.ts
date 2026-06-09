@@ -11,6 +11,10 @@ function siteUrl() {
 }
 
 export async function signInWithDiscord() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return { error: "Supabase is not configured. Add keys to .env.local." }
+  }
+
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -31,29 +35,39 @@ export async function signOut() {
   revalidatePath("/", "layout")
 }
 
-export async function submitLibrary(formData: FormData) {
+export type LibrarySubmissionInput = {
+  name: string
+  author: string
+  platform: string
+  kind: Kind
+  accent: string
+  source: string
+  description: string
+}
+
+type ActionError = { ok: false; error: string }
+type CreateLibraryResult =
+  | ActionError
+  | { ok: true; libraryId: string; slug: string }
+
+export async function createLibrarySubmission(input: LibrarySubmissionInput): Promise<CreateLibraryResult> {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) return { error: "Sign in with Discord to publish." }
+  if (!user) return { ok: false, error: "Sign in with Discord to publish." }
 
-  const name = String(formData.get("name") ?? "").trim()
-  const author = String(formData.get("author") ?? "").trim()
-  const platform = String(formData.get("platform") ?? "").trim()
-  const kind = String(formData.get("kind") ?? "luau") as Kind
-  const accent = String(formData.get("accent") ?? "").trim()
-  const source = String(formData.get("source") ?? "").trim()
-  const description = String(formData.get("description") ?? "").trim()
+  const name = input.name.trim()
+  const author = input.author.trim()
+  const platform = input.platform.trim()
+  const kind = input.kind
+  const accent = input.accent.trim()
+  const source = input.source.trim()
+  const description = input.description.trim()
 
   if (!name || !author || !platform || !source) {
-    return { error: "Fill in all required fields." }
-  }
-
-  const files = formData.getAll("screenshots").filter((f): f is File => f instanceof File && f.size > 0)
-  if (files.length === 0) {
-    return { error: "Upload at least one screenshot." }
+    return { ok: false, error: "Fill in all required fields." }
   }
 
   let slug = slugify(name)
@@ -78,45 +92,66 @@ export async function submitLibrary(formData: FormData) {
     .single()
 
   if (insertError || !library) {
-    return { error: insertError?.message ?? "Failed to create submission." }
+    return { ok: false, error: insertError?.message ?? "Failed to create submission." }
   }
 
-  const uploaded: { url: string; sort: number }[] = []
+  return { ok: true, libraryId: library.id, slug: library.slug }
+}
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i]!
-    const ext = file.name.split(".").pop() ?? "jpg"
-    const path = `${user.id}/${library.id}/${i}.${ext}`
+type AttachScreenshotsResult = ActionError | { ok: true }
 
-    const { error: uploadError } = await supabase.storage
-      .from("screenshots")
-      .upload(path, file, { upsert: true, contentType: file.type })
+export async function attachLibraryScreenshots(
+  libraryId: string,
+  urls: string[],
+): Promise<AttachScreenshotsResult> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-    if (uploadError) {
-      return { error: `Upload failed: ${uploadError.message}` }
-    }
+  if (!user) return { ok: false, error: "Sign in with Discord to publish." }
+  if (urls.length === 0) return { ok: false, error: "Upload at least one screenshot." }
 
-    const { data: pub } = supabase.storage.from("screenshots").getPublicUrl(path)
-    uploaded.push({ url: pub.publicUrl, sort: i })
+  const { data: library } = await supabase
+    .from("libraries")
+    .select("id, author_id, status")
+    .eq("id", libraryId)
+    .maybeSingle()
+
+  if (!library || library.author_id !== user.id || library.status !== "pending") {
+    return { ok: false, error: "Submission not found." }
   }
 
   const { error: shotsError } = await supabase.from("library_screenshots").insert(
-    uploaded.map((u) => ({
-      library_id: library.id,
-      url: u.url,
-      sort_order: u.sort,
+    urls.map((url, sort) => ({
+      library_id: libraryId,
+      url,
+      sort_order: sort,
     })),
   )
 
-  if (shotsError) return { error: shotsError.message }
+  if (shotsError) return { ok: false, error: shotsError.message }
+
+  await supabase.from("libraries").update({ cover_url: urls[0]! }).eq("id", libraryId)
+
+  revalidatePath("/moderation")
+  return { ok: true }
+}
+
+export async function cancelLibrarySubmission(libraryId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return
 
   await supabase
     .from("libraries")
-    .update({ cover_url: uploaded[0]!.url })
-    .eq("id", library.id)
-
-  revalidatePath("/moderation")
-  return { ok: true, slug: library.slug }
+    .delete()
+    .eq("id", libraryId)
+    .eq("author_id", user.id)
+    .eq("status", "pending")
 }
 
 export async function moderateLibrary(libraryId: string, verdict: "approved" | "rejected") {
