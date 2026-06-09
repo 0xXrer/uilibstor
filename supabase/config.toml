@@ -1,0 +1,40 @@
+# Supabase local dev — run: npx supabase start
+# Docs: https://supabase.com/docs/guides/cli
+
+project_id = "uilib"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.external.discord]
+enabled = true
+client_id = "env(DISCORD_CLIENT_ID)"
+secret = "env(DISCORD_CLIENT_SECRET)"
+redirect_uri = "http://localhost:54321/auth/v1/callback"
