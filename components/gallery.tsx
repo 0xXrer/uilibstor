@@ -167,9 +167,9 @@ export function Gallery({ libraries }: { libraries: Library[] }) {
         </div>
         <div className="flex gap-10 font-mono text-[12px] text-muted-foreground md:col-span-5 md:justify-end">
           <div className="flex flex-col gap-2">
-            <a href="#" className="transition-colors hover:text-foreground">Source</a>
-            <a href="#" className="transition-colors hover:text-foreground">Guidelines</a>
-            <a href="#" className="transition-colors hover:text-foreground">Discord</a>
+            {/* <a href="#" className="transition-colors hover:text-foreground">Source</a>
+            <a href="#" className="transition-colors hover:text-foreground">Guidelines</a> */}
+            <a href="https://discord.gg/q2QZWBewyR" className="transition-colors hover:text-foreground">Discord</a>
           </div>
           <div className="flex flex-col gap-2">
             <span className="text-foreground">© 2026</span>
