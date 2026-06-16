@@ -1,11 +1,43 @@
 import Link from "next/link"
+import type { Metadata } from "next"
 
 import { Gallery } from "@/components/gallery"
 import { HeroBackground } from "@/components/hero-background"
 import { SiteHeader } from "@/components/site-header"
 import { getApprovedLibraries, getGalleryStats } from "@/lib/libraries"
+import { SITE_NAME } from "@/lib/metadata"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+  title: "The menu, before the build.",
+  description:
+    "Community gallery of UI libraries for Roblox and ImGui overlays. Browse the real look, grab the source.",
+  openGraph: {
+    title: `The menu, before the build. · ${SITE_NAME}`,
+    description:
+      "Community gallery of UI libraries for Roblox and ImGui overlays. Browse the real look, grab the source.",
+    url: "/",
+    images: [
+      {
+        url: "/hero/telescope-poster.jpg",
+        width: 1920,
+        height: 1080,
+        alt: "uilib gallery",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `The menu, before the build. · ${SITE_NAME}`,
+    description:
+      "Community gallery of UI libraries for Roblox and ImGui overlays. Browse the real look, grab the source.",
+    images: ["/hero/telescope-poster.jpg"],
+  },
+  alternates: {
+    canonical: "/",
+  },
+}
 
 export default async function Page() {
   const [libraries, stats] = await Promise.all([

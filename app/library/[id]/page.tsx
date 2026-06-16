@@ -1,6 +1,6 @@
 import Link from "next/link"
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-
 export const dynamic = "force-dynamic"
 
 import { CustomLibraryEmbed } from "@/components/custom-library-embed"
@@ -12,11 +12,50 @@ import { SiteHeader } from "@/components/site-header"
 import { ViewTracker } from "@/components/view-tracker"
 import { getCustomLibraryPageUrl } from "@/lib/custom-library-pages"
 import { getLibraryBySlug, userLikedLibrary } from "@/lib/libraries"
+import { libraryMetadata, SITE_NAME } from "@/lib/metadata"
 import { createClient } from "@/lib/supabase/server"
 
 function formatCount(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
   return String(n)
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id: slug } = await params
+  const lib = await getLibraryBySlug(slug)
+
+  if (lib) {
+    return {
+      ...libraryMetadata({
+        slug: lib.slug,
+        name: lib.name,
+        author: lib.author,
+        platform: lib.platform,
+        description: lib.description,
+        cover: lib.cover,
+      }),
+      alternates: {
+        canonical: `/library/${slug}`,
+      },
+    }
+  }
+
+  if (getCustomLibraryPageUrl(slug)) {
+    const name = slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    return libraryMetadata({
+      slug,
+      name,
+      author: SITE_NAME,
+      platform: "Luau",
+      description: `${name} UI library documentation and preview.`,
+    })
+  }
+
+  return { title: "Not found" }
 }
 
 export default async function LibraryPage({
