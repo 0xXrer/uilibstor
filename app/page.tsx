@@ -81,7 +81,7 @@ export default async function Page() {
             </a>
             <Link
               href="/upload"
-              className="flex items-center gap-1.5 text-[13px] text-white/55 transition-colors hover:text-white"
+              className="rounded-lg bg-white/1 px-4 py-2 flex items-center gap-1.5 text-[13px] text-white/55 transition-colors hover:text-white"
             >
               Publish yours
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden>
