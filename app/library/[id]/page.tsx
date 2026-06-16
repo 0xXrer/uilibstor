@@ -3,12 +3,14 @@ import { notFound } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
+import { CustomLibraryEmbed } from "@/components/custom-library-embed"
 import { LibraryPreview, Stage } from "@/components/library-preview"
 import { LibraryLikeButton } from "@/components/library-like-button"
 import { Markdown } from "@/components/markdown"
 import { ScreenshotGrid } from "@/components/screenshot-grid"
 import { SiteHeader } from "@/components/site-header"
 import { ViewTracker } from "@/components/view-tracker"
+import { getCustomLibraryPageUrl } from "@/lib/custom-library-pages"
 import { getLibraryBySlug, userLikedLibrary } from "@/lib/libraries"
 import { createClient } from "@/lib/supabase/server"
 
@@ -23,6 +25,41 @@ export default async function LibraryPage({
   params: Promise<{ id: string }>
 }) {
   const { id: slug } = await params
+  const customUrl = getCustomLibraryPageUrl(slug)
+
+  if (customUrl) {
+    const lib = await getLibraryBySlug(slug)
+
+    return (
+      <div className="flex min-h-svh flex-col">
+        {lib && <ViewTracker libraryId={lib.id} />}
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">
+          <div className="flex items-center justify-between border-b border-border/60 px-6 py-2 sm:px-10">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 font-mono text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden>
+                <path d="M9 3L5 7l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              gallery
+            </Link>
+            <a
+              href={customUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Open in new tab
+            </a>
+          </div>
+          <CustomLibraryEmbed src={customUrl} title={lib?.name ?? slug} />
+        </div>
+      </div>
+    )
+  }
+
   const lib = await getLibraryBySlug(slug)
   if (!lib) notFound()
 
