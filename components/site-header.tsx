@@ -147,10 +147,6 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="hidden items-center gap-1.5 font-mono text-[11px] text-muted-foreground md:flex">
-            <kbd className="rounded border border-border px-1 py-px text-[10px]">D</kbd>
-            theme
-          </span>
           {loading ? (
             <span className="h-8 w-24 animate-[fade-in_0.4s_ease-out] rounded-full bg-muted/50" />
           ) : user ? (

@@ -12,6 +12,7 @@ import {
 } from "@/components/library-preview"
 import { Markdown } from "@/components/markdown"
 import { DiscordIcon, SiteHeader } from "@/components/site-header"
+import { SubmissionNoticesLoader } from "@/components/submission-notices-loader"
 import {
   attachLibraryScreenshots,
   cancelLibrarySubmission,
@@ -240,6 +241,7 @@ export default function UploadPage() {
           <SubmittedScreen name={name} onReset={reset} />
         ) : (
           <div className="animate-[fade-up_0.5s_ease-out_both]">
+            <SubmissionNoticesLoader userId={user.id} />
             <div className="mb-10">
               <p className="font-mono text-[11px] tracking-wide text-muted-foreground uppercase">
                 Upload

@@ -73,7 +73,7 @@ export default async function ModerationPage() {
   return (
     <div className="min-h-svh">
       <SiteHeader />
-      <main className="mx-auto max-w-4xl px-6 py-12 sm:px-10">
+      <main className="mx-auto max-w-5xl px-6 py-12 sm:px-10">
         {!user ? (
           <SignInGate />
         ) : !isModerator ? (

@@ -60,6 +60,7 @@ export type Database = {
           views_count: number
           reviewed_by: string | null
           reviewed_at: string | null
+          rejection_reason: string | null
           created_at: string
           updated_at: string
         }
@@ -80,6 +81,7 @@ export type Database = {
           views_count?: number
           reviewed_by?: string | null
           reviewed_at?: string | null
+          rejection_reason?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -100,6 +102,7 @@ export type Database = {
           views_count?: number
           reviewed_by?: string | null
           reviewed_at?: string | null
+          rejection_reason?: string | null
           created_at?: string
           updated_at?: string
         }

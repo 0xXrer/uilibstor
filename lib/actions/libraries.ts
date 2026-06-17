@@ -154,7 +154,11 @@ export async function cancelLibrarySubmission(libraryId: string) {
     .eq("status", "pending")
 }
 
-export async function moderateLibrary(libraryId: string, verdict: "approved" | "rejected") {
+export async function moderateLibrary(
+  libraryId: string,
+  verdict: "approved" | "rejected",
+  rejectionReason?: string,
+) {
   const supabase = await createClient()
   const {
     data: { user },
@@ -170,12 +174,18 @@ export async function moderateLibrary(libraryId: string, verdict: "approved" | "
 
   if (!profile?.is_moderator) return { error: "Moderators only." }
 
+  if (verdict === "rejected") {
+    const reason = rejectionReason?.trim()
+    if (!reason) return { error: "Rejection reason is required." }
+  }
+
   const { error } = await supabase
     .from("libraries")
     .update({
       status: verdict,
       reviewed_by: user.id,
       reviewed_at: new Date().toISOString(),
+      rejection_reason: verdict === "rejected" ? rejectionReason!.trim() : null,
     })
     .eq("id", libraryId)
     .eq("status", "pending")
@@ -183,6 +193,63 @@ export async function moderateLibrary(libraryId: string, verdict: "approved" | "
   if (error) return { error: error.message }
 
   revalidatePath("/")
+  revalidatePath("/moderation")
+  revalidatePath("/upload")
+  return { ok: true }
+}
+
+export type PendingLibraryEdit = {
+  name: string
+  author: string
+  platform: string
+  kind: Kind
+  accent: string
+  source: string
+  description: string
+}
+
+export async function updatePendingLibrary(libraryId: string, input: PendingLibraryEdit) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: "Not signed in." }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_moderator")
+    .eq("id", user.id)
+    .single()
+
+  if (!profile?.is_moderator) return { error: "Moderators only." }
+
+  const name = input.name.trim()
+  const author = input.author.trim()
+  const platform = input.platform.trim()
+  const source = input.source.trim()
+  const description = input.description.trim()
+
+  if (!name || !author || !platform || !source) {
+    return { error: "Fill in all required fields." }
+  }
+
+  const { error } = await supabase
+    .from("libraries")
+    .update({
+      name,
+      author,
+      platform,
+      kind: input.kind,
+      accent: input.accent,
+      source_url: source,
+      description,
+    })
+    .eq("id", libraryId)
+    .eq("status", "pending")
+
+  if (error) return { error: error.message }
+
   revalidatePath("/moderation")
   return { ok: true }
 }

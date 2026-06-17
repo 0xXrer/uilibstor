@@ -8,6 +8,7 @@ export type Library = {
   slug: string
   name: string
   author: string
+  authorId: string
   platform: string
   kind: Kind
   accent: string
@@ -18,6 +19,16 @@ export type Library = {
   description: string
   screenshots: string[]
   status: LibraryStatus
+  rejectionReason?: string | null
+  createdAt: string
+}
+
+export type UserSubmission = {
+  id: string
+  name: string
+  status: LibraryStatus
+  rejectionReason: string | null
+  reviewedAt: string | null
   createdAt: string
 }
 
@@ -45,6 +56,7 @@ function mapRow(
     slug: row.slug,
     name: row.name,
     author: row.author,
+    authorId: row.author_id,
     platform: row.platform,
     kind: row.kind as Kind,
     accent: row.accent,
@@ -55,6 +67,7 @@ function mapRow(
     description: row.description,
     screenshots: urls,
     status: row.status,
+    rejectionReason: row.rejection_reason,
     createdAt: row.created_at,
   }
 }
@@ -130,6 +143,29 @@ export async function getPendingLibraries(): Promise<Library[]> {
 
   if (error) throw error
   return attachScreenshots(data ?? [])
+}
+
+export async function getUserSubmissions(userId: string): Promise<UserSubmission[]> {
+  if (!isSupabaseConfigured()) return []
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("libraries")
+    .select("id, name, status, rejection_reason, reviewed_at, created_at")
+    .eq("author_id", userId)
+    .in("status", ["pending", "rejected"])
+    .order("created_at", { ascending: false })
+
+  if (error) throw error
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    status: row.status,
+    rejectionReason: row.rejection_reason,
+    reviewedAt: row.reviewed_at,
+    createdAt: row.created_at,
+  }))
 }
 
 export async function getGalleryStats() {
